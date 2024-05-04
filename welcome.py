@@ -90,16 +90,15 @@ def main():
     )
 
     # Upload Audio
-    uploaded_file = st.file_uploader("Upload Audio", type=["wav"])
+    uploaded_file = st.file_uploader("Upload Audio")
     if uploaded_file is not None:
         st.success("Audio file uploaded successfully.")
-        file_details = {"FileName": uploaded_file.name, "FileType": uploaded_file.type, "FileSize": uploaded_file.size}
+        file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
         st.write(file_details)
-        audio_path = os.path.join("audios", f"uploaded_audio.wav")
+        audio_path = os.path.join("audios", f"uploaded_audio.{uploaded_file.name.split('.')[-1]}")
         with open(audio_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
-        audio_bytes = get_audio_bytes(audio_path)
-        st.audio(audio_bytes, format='audio/wav')
+        st.audio(audio_path, format='audio/{0}'.format(uploaded_file.name.split('.')[-1]))
         if st.button("Evaluate Pronunciation - Upload", key="upload_btn"):
             evaluate_audio(audio_path)
 
@@ -126,12 +125,6 @@ def evaluate_audio(audio_file):
 
     except Exception as e:
         st.error(f"An error occurred during evaluation: {e}")
-
-# Function to read audio file as bytes
-def get_audio_bytes(audio_path):
-    with open(audio_path, "rb") as f:
-        audio_bytes = f.read()
-    return audio_bytes
 
 # Run the app
 if __name__ == "__main__":
