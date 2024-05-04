@@ -9,8 +9,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 from sklearn.svm import SVC
-import sounddevice as sd
 import soundfile as sf
+import base64
 
 # Create a folder if it doesn't exist
 os.makedirs("audios", exist_ok=True)
@@ -89,54 +89,19 @@ def main():
         unsafe_allow_html=True
     )
 
-    # Record or upload audio
-    st.header("Record or Upload Audio")
-
-    col1, col2 = st.columns([1, 1])
-
-    with col1:
-        if st.button("Record Audio"):
-            record_audio()
-
-    with col2:
-        uploaded_file = st.file_uploader("Upload Audio", type=["wav"])
-        if uploaded_file is not None:
-            st.audio(uploaded_file, format='audio/wav')
-            if st.button("Evaluate Pronunciation - Upload", key="upload_btn"):
-                evaluate_audio(uploaded_file)
-
-    # Display saved audio files in a table
-    audio_files = os.listdir("audios")
-    if audio_files:
-        st.header("Saved Audio Files")
-        for selected_file in audio_files:
-            audio_file_path = os.path.join("audios", selected_file)
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                st.audio(audio_file_path, format='audio/wav')
-            with col2:
-                if st.button(f"Evaluate Pronunciation - {selected_file}", key=f"saved_btn_{selected_file}"):
-                    evaluate_audio(audio_file_path)
-                if st.button(f"Delete {selected_file}", key=f"delete_btn_{selected_file}"):
-                    os.remove(audio_file_path)
-                    st.success(f"Audio file '{selected_file}' deleted successfully.")
-                    st.experimental_rerun()
-
-# Function to record audio
-def record_audio():
-    st.warning("Recording audio. Please speak into the microphone...")
-    duration = 5  # Recording duration in seconds
-    samplerate = 44100  # Sampling rate
-    audio_data = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=1, dtype="int16")
-    sd.wait()  # Wait for recording to complete
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-    audio_file_path = os.path.join("audios", f"recorded_audio_{timestamp}.wav")
-    # Check if the file already exists
-    if os.path.exists(audio_file_path):
-        st.warning("Audio file already exists.")
-    else:
-        sf.write(audio_file_path, audio_data, samplerate)
-        st.success(f"Audio recorded and saved as {audio_file_path}")
+    # Upload Audio
+    uploaded_file = st.file_uploader("Upload Audio", type=["wav"])
+    if uploaded_file is not None:
+        st.success("Audio file uploaded successfully.")
+        file_details = {"FileName": uploaded_file.name, "FileType": uploaded_file.type, "FileSize": uploaded_file.size}
+        st.write(file_details)
+        audio_path = os.path.join("audios", f"uploaded_audio.wav")
+        with open(audio_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        audio_bytes = get_audio_bytes(audio_path)
+        st.audio(audio_bytes, format='audio/wav')
+        if st.button("Evaluate Pronunciation - Upload", key="upload_btn"):
+            evaluate_audio(audio_path)
 
 # Function to evaluate audio
 def evaluate_audio(audio_file):
@@ -161,6 +126,12 @@ def evaluate_audio(audio_file):
 
     except Exception as e:
         st.error(f"An error occurred during evaluation: {e}")
+
+# Function to read audio file as bytes
+def get_audio_bytes(audio_path):
+    with open(audio_path, "rb") as f:
+        audio_bytes = f.read()
+    return audio_bytes
 
 # Run the app
 if __name__ == "__main__":
