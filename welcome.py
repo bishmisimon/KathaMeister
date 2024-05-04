@@ -2,7 +2,6 @@ import streamlit as st
 import os
 from PIL import Image
 import pandas as pd
-from datetime import datetime
 import librosa
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -34,7 +33,7 @@ def load_data_and_train_model():
     correct_features = []
     correct_labels = []
     for filename in os.listdir(correct_directory):
-        if filename.endswith('.wav'):
+        if filename.endswith(('.wav', '.mp3', '.m4a')):
             audio_file = os.path.join(correct_directory, filename)
             features = extract_mfcc_features(audio_file)
             correct_features.append(features)
@@ -44,7 +43,7 @@ def load_data_and_train_model():
     incorrect_features = []
     incorrect_labels = []
     for filename in os.listdir(incorrect_directory):
-        if filename.endswith('.wav'):
+        if filename.endswith(('.wav', '.mp3', '.m4a')):
             audio_file = os.path.join(incorrect_directory, filename)
             features = extract_mfcc_features(audio_file)
             incorrect_features.append(features)
@@ -77,6 +76,13 @@ def predict_pronunciation_accuracy(audio_file_path):
     prediction_prob = svm_model.predict_proba(scaled_features)[0][1]  # Probability of correct pronunciation
     return prediction_prob, audio_file_path  # Return the audio file path
 
+# Function to convert audio to WAV format
+def convert_to_wav(audio_file_path):
+    y, sr = librosa.load(audio_file_path, sr=None)
+    wav_path = os.path.splitext(audio_file_path)[0] + '.wav'
+    sf.write(wav_path, y, sr, 'PCM_24')
+    return wav_path
+
 # Main function to run the app
 def main():
     logo_image = Image.open("Logo.png")
@@ -90,17 +96,26 @@ def main():
     )
 
     # Upload Audio
-    uploaded_file = st.file_uploader("Upload Audio")
+    uploaded_file = st.file_uploader("Upload Audio", type=['mp3', 'wav', 'm4a'])
     if uploaded_file is not None:
         st.success("Audio file uploaded successfully.")
-        file_details = {"FileName":uploaded_file.name,"FileType":uploaded_file.type,"FileSize":uploaded_file.size}
+        file_details = {"FileName": uploaded_file.name, "FileType": uploaded_file.type, "FileSize": uploaded_file.size}
         st.write(file_details)
         audio_path = os.path.join("audios", f"uploaded_audio.{uploaded_file.name.split('.')[-1]}")
         with open(audio_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
-        st.audio(audio_path, format='audio/{0}'.format(uploaded_file.name.split('.')[-1]))
+        
+        # Convert to WAV format if not already WAV
+        if audio_path.lower().endswith('.wav'):
+            converted_audio_path = audio_path
+        else:
+            converted_audio_path = convert_to_wav(audio_path)
+            st.info(f"Audio file converted to WAV format: {converted_audio_path}")
+        
+        st.audio(converted_audio_path, format='audio/wav')
+        
         if st.button("Evaluate Pronunciation - Upload", key="upload_btn"):
-            evaluate_audio(audio_path)
+            evaluate_audio(converted_audio_path)
 
 # Function to evaluate audio
 def evaluate_audio(audio_file):
