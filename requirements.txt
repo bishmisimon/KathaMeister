@@ -1,0 +1,8 @@
+streamlit
+Pillow
+pandas
+numpy
+scikit-learn
+librosa
+sounddevice
+soundfile
