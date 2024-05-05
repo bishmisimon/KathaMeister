@@ -1,7 +1,6 @@
 import mysql.connector
 import streamlit as st
 import welcome
-
 import base64
 
 # Set page configuration
@@ -28,29 +27,20 @@ custom_html = f"""
 # Display the custom HTML with the base64-encoded image
 st.markdown(custom_html, unsafe_allow_html=True)
 
-# Main content
-st.markdown("<h1 style='text-align: center; color: #4169E1;'>Ihre Lieblings Deutsche Ausprache Bewerter</h1>", unsafe_allow_html=True)
-st.markdown("<h2 style='text-align: center; font-style: italic; font-family: cursive;'>Your German Pronunciation Feedback</h2>", unsafe_allow_html=True)
-################
-
-#conn = mysql.connector.connect(
-#    host="localhost",
-#    user="root",
-#    password="root",
-#    database="katha_meister"
-#)
-conn = mysql.connector.connect(
-    host="database-1.clsoq4mai7vi.ap-south-1.rds.amazonaws.com",
-    user="kathameisterxp",
-    password="CroCro123",
-    database="kathameister"
-)
-
-cursor = conn.cursor()
+# Function to connect to MySQL database
+def connect_to_database():
+    conn = mysql.connector.connect(
+        host="database-1.clsoq4mai7vi.ap-south-1.rds.amazonaws.com",
+        user="kathameisterxp",
+        password="CroCro123",
+        database="kathameister"
+    )
+    return conn
 
 # Function to register a new user
-def register(username, email, f_name, l_name, password):
+def register(conn, username, email, f_name, l_name, password):
     try:
+        cursor = conn.cursor()
         # Check if username already exists
         cursor.execute("SELECT COUNT(*) FROM user_register WHERE user_name = %s", (username,))
         result = cursor.fetchone()
@@ -70,13 +60,28 @@ def register(username, email, f_name, l_name, password):
         return False  # Return False if registration fails
 
 # Function to check if the provided credentials are valid
-def is_valid_credentials(username, password):
+def is_valid_credentials(conn, username, password):
+    cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM user_register WHERE user_name = %s AND password = %s", (username, password))
     result = cursor.fetchone()
     return result[0] > 0
 
+# Function to display the login form
+def login_form(conn):
+    with st.container():
+        with st.container():
+            st.title("User Login")
+            username = st.text_input("Username", key="username_input_login")
+            password = st.text_input("Password", type="password", key="password_input_login")
+            if st.button("Login", key="login_btn"):
+                if is_valid_credentials(conn, username, password):
+                    st.session_state.logged_in = True
+                    st.experimental_rerun()
+                else:
+                    st.error("Invalid username or password.")
+
 # Function to display the registration form
-def registration_form():
+def registration_form(conn):
     with st.container():
         with st.container():
             st.title("User Registration")
@@ -86,25 +91,11 @@ def registration_form():
             l_name = st.text_input("Last Name", key="l_name_input_reg")
             password = st.text_input("Password", type="password", key="password_input_reg")
             if st.button("Register", key="register_btn"):
-                if register(username, email, f_name, l_name, password):
+                if register(conn, username, email, f_name, l_name, password):
                     st.success("Registration successful! Please proceed to login.")
 
-# Function to display the login form
-def login_form():
-    with st.container():
-        with st.container():
-            st.title("User Login")
-            username = st.text_input("Username", key="username_input_login")
-            password = st.text_input("Password", type="password", key="password_input_login")
-            if st.button("Login", key="login_btn"):
-                if is_valid_credentials(username, password):
-                    st.success(f"Welcome, {username}!")
-                    st.session_state.logged_in = True
-                    st.rerun()
-                else:
-                    st.error("Invalid username or password.")
-
 def main():
+    conn = connect_to_database()
     if st.session_state.get("logged_in"):
         st.success("Logged in successfully to the Dashboard!")
         st.write("Redirecting to welcome page...")
@@ -113,9 +104,9 @@ def main():
         st.markdown("<div class='centered' style='color: #4169E1;'><h1>User Authentication</h1></div>", unsafe_allow_html=True)
         st.markdown("<div class='centered'><p>Please login or register to access the application</p></div>", unsafe_allow_html=True)
         st.write("---")
-        login_form()
+        login_form(conn)
         st.write("or")
-        registration_form()
+        registration_form(conn)
 
 if __name__ == "__main__":
     main()
