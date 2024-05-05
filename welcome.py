@@ -96,7 +96,7 @@ def main():
     )
 
     # Upload Audio
-    uploaded_file = st.file_uploader("Upload Audio", type=['mp3', 'wav', 'm4a','ogg','aac','flac'])
+    uploaded_file = st.file_uploader("Upload Audio", type=['mp3', 'wav', 'm4a','ogg','aac','flac','mp4'])
     if uploaded_file is not None:
         st.success("Audio file uploaded successfully.")
         file_details = {"FileName": uploaded_file.name, "FileType": uploaded_file.type, "FileSize": uploaded_file.size}
